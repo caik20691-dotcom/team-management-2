@@ -8,7 +8,7 @@ COPY client/package.json client/package-lock.json ./
 RUN npm ci --registry=$NPM_REGISTRY
 
 COPY client ./
-RUN npm run build
+RUN npx vite build
 
 # ---- Nginx Stage ----
 FROM nginx:alpine
