@@ -129,10 +129,18 @@ export default function KanbanBoardView({
                   tasks.map((task: any, idx: number) => {
                     const pCfg = PRIORITY_CONFIG[task.priority] || PRIORITY_CONFIG.MEDIUM;
                     const isDragging = draggedTaskId === task.id;
+                    const isTerminal = task.status === 'DONE' || task.status === 'CANCELLED';
                     const diffDays = task.dueDate ? dayjs(task.dueDate).startOf('day').diff(dayjs().startOf('day'), 'day') : null;
-                    const deadlineLabel = diffDays === null ? null : diffDays < 0 ? `已逾期${Math.abs(diffDays)}天` : diffDays === 0 ? '今天截止' : diffDays === 1 ? '明天截止' : `还有${diffDays}天`;
-                    const deadlineColor = diffDays === null ? undefined : diffDays < 0 ? '#ef4444' : diffDays <= 1 ? '#f59e0b' : '#10b981';
-                    const isOverdue = diffDays !== null && diffDays < 0;
+                    const deadlineLabel = (diffDays === null || isTerminal) ? null
+                      : diffDays < 0 ? `已逾期${Math.abs(diffDays)}天`
+                      : diffDays === 0 ? '今天截止'
+                      : diffDays === 1 ? '明天截止'
+                      : `还有${diffDays}天`;
+                    const deadlineColor = (diffDays === null || isTerminal) ? undefined
+                      : diffDays < 0 ? '#ef4444'
+                      : diffDays <= 1 ? '#f59e0b'
+                      : '#10b981';
+                    const isOverdue = !isTerminal && diffDays !== null && diffDays < 0;
                     const assignees = task.assignees || [];
 
                     return (
@@ -182,22 +190,24 @@ export default function KanbanBoardView({
                               }}>
                                 {pCfg.label}
                               </span>
-                              {task.dueDate && deadlineLabel && (
+                              {task.dueDate && (
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
                                   {!compact && (
                                     <span style={{ fontSize: 9, color: '#6b7280' }}>
                                       {dayjs(task.dueDate).format('YYYY/MM/DD HH:mm')}
                                     </span>
                                   )}
-                                  <span style={{
-                                    fontSize: compact ? 9 : 10,
-                                    fontWeight: isOverdue ? 600 : 400,
-                                    color: deadlineColor,
-                                    display: 'flex', alignItems: 'center', gap: 3,
-                                  }}>
-                                    <ClockCircleOutlined style={{ fontSize: compact ? 8 : 10 }} />
-                                    {deadlineLabel}
-                                  </span>
+                                  {deadlineLabel && (
+                                    <span style={{
+                                      fontSize: compact ? 9 : 10,
+                                      fontWeight: isOverdue ? 600 : 400,
+                                      color: deadlineColor,
+                                      display: 'flex', alignItems: 'center', gap: 3,
+                                    }}>
+                                      <ClockCircleOutlined style={{ fontSize: compact ? 8 : 10 }} />
+                                      {deadlineLabel}
+                                    </span>
+                                  )}
                                 </div>
                               )}
                             </div>

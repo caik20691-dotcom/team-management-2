@@ -51,9 +51,11 @@ const formatSize = (b: number) => {
   return `${(b / 1048576).toFixed(1)} MB`;
 };
 
-function deadlineDisplay(dueDate: string) {
+function deadlineDisplay(dueDate: string, status?: string) {
+  const isTerminal = status === 'DONE' || status === 'CANCELLED';
   const diff = dayjs(dueDate).startOf('day').diff(dayjs().startOf('day'), 'day');
   const dateStr = dayjs(dueDate).format('YYYY/MM/DD HH:mm');
+  if (isTerminal) return { text: '', date: dateStr, color: '#10b981' };
   if (diff < 0) return { text: `已逾期 ${Math.abs(diff)} 天`, date: dateStr, color: '#ef4444' };
   if (diff === 0) return { text: '今天截止', date: dateStr, color: '#f59e0b' };
   if (diff === 1) return { text: '明天截止', date: dateStr, color: '#f59e0b' };
@@ -116,7 +118,7 @@ export default function TaskDetailPage() {
 
   const pCfg = priorityConfig[task.priority] || priorityConfig.MEDIUM;
   const sCfg = statusConfig[task.status] || statusConfig.TODO;
-  const deadline = task.dueDate ? deadlineDisplay(task.dueDate) : null;
+  const deadline = task.dueDate ? deadlineDisplay(task.dueDate, task.status) : null;
 
   return (
     <div>
@@ -149,9 +151,11 @@ export default function TaskDetailPage() {
               {deadline && (
                 <div style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 8, fontSize: 12 }}>
                   <span style={{ color: '#6b7280' }}>{deadline.date}</span>
-                  <span style={{ color: deadline.color, fontWeight: 600 }}>
-                    <ClockCircleOutlined style={{ marginRight: 3 }} />{deadline.text}
-                  </span>
+                  {deadline.text && (
+                    <span style={{ color: deadline.color, fontWeight: 600 }}>
+                      <ClockCircleOutlined style={{ marginRight: 3 }} />{deadline.text}
+                    </span>
+                  )}
                 </div>
               )}
             </div>
