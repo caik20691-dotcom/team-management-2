@@ -1,0 +1,101 @@
+{
+  "systemName": "verify-test",
+  "logoUrl": "/uploads/1777912477583-128141703.jpeg",
+  "announcementCategories": [
+    {
+      "id": "cat-1",
+      "name": "通知",
+      "color": "#3b82f6",
+      "bg": "#eff6ff",
+      "sort": 1
+    },
+    {
+      "id": "cat-2",
+      "name": "制度",
+      "color": "#7c3aed",
+      "bg": "#f5f3ff",
+      "sort": 2
+    },
+    {
+      "id": "cat-5",
+      "name": "其他",
+      "color": "#6b7280",
+      "bg": "#f9fafb",
+      "sort": 3
+    },
+    {
+      "id": "cat-3",
+      "name": "活动",
+      "color": "#10b981",
+      "bg": "#ecfdf5",
+      "sort": 4
+    },
+    {
+      "id": "cat-4",
+      "name": "人事",
+      "color": "#f59e0b",
+      "bg": "#fffbeb",
+      "sort": 5
+    },
+    {
+      "id": "cat-15c28b0c",
+      "name": "业务规则",
+      "color": "#ec4899",
+      "bg": "#ec489915",
+      "sort": 6
+    },
+    {
+      "id": "cat-9959e272",
+      "name": "团建",
+      "color": "#f59e0b",
+      "bg": "#f59e0b15",
+      "sort": 7
+    }
+  ],
+  "sopScenarios": [
+    {
+      "id": "sc-bfca5690",
+      "name": "线下客户接待",
+      "sort": 1
+    },
+    {
+      "id": "sc-172d233c",
+      "name": "线上客户沟通",
+      "sort": 2
+    }
+  ],
+  "documentFolders": [
+    {
+      "id": "df-2b504dd8",
+      "name": "对内",
+      "sort": 1
+    },
+    {
+      "id": "df-5bb1aa08",
+      "name": "对外",
+      "sort": 2
+    },
+    {
+      "id": "df-a4d26a0f",
+      "name": "对外客户",
+      "sort": 3
+    }
+  ],
+  "documentCategories": [
+    {
+      "id": "dc-1743bf06",
+      "name": "外部客户",
+      "sort": 1
+    },
+    {
+      "id": "dc-8a5223ee",
+      "name": "内部客户",
+      "sort": 2
+    },
+    {
+      "id": "dc-3afcf738",
+      "name": "标准化管理",
+      "sort": 3
+    }
+  ]
+}
