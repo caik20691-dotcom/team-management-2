@@ -2,6 +2,8 @@
 FROM node:20-alpine AS builder
 WORKDIR /app
 
+RUN apk add --no-cache openssl
+
 ARG NPM_REGISTRY=https://registry.npmmirror.com
 
 COPY package.json package-lock.json ./
@@ -17,6 +19,8 @@ RUN npm run build
 # ---- Production Stage ----
 FROM node:20-alpine
 WORKDIR /app
+
+RUN apk add --no-cache openssl
 
 ARG NPM_REGISTRY=https://registry.npmmirror.com
 
