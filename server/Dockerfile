@@ -10,9 +10,8 @@ RUN npm ci --registry=$NPM_REGISTRY
 COPY prisma ./prisma
 RUN npx prisma generate
 
-COPY tsconfig.json tsconfig.build.json nest-cli.json ./
+COPY tsconfig.json nest-cli.json ./
 COPY src ./src
-COPY test ./test
 RUN npm run build
 
 # ---- Production Stage ----
