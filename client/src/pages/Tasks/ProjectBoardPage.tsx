@@ -7,29 +7,16 @@ import {
 } from 'antd';
 import {
   ApartmentOutlined, RightOutlined, DownOutlined,
-  ClockCircleOutlined, PlusOutlined, EditOutlined, DeleteOutlined,
-  UserOutlined, CalendarOutlined, FlagOutlined, TeamOutlined,
+  PlusOutlined, EditOutlined, DeleteOutlined,
+  UserOutlined, CalendarOutlined, TeamOutlined,
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { projectApi, taskApi, userApi } from '../../api';
+import KanbanBoardView from '../../components/Tasks/KanbanBoardView';
+import { useKanbanBoard } from '../../hooks/useKanbanBoard';
 import dayjs from 'dayjs';
 
-const { Title, Text, Paragraph } = Typography;
-
-const priorityConfig: Record<string, { label: string; color: string; bg: string }> = {
-  LOW:    { label: '低',   color: '#6b7280', bg: '#f9fafb' },
-  MEDIUM: { label: '中',   color: '#3b82f6', bg: '#eff6ff' },
-  HIGH:   { label: '高',   color: '#f59e0b', bg: '#fffbeb' },
-  URGENT: { label: '紧急', color: '#ef4444', bg: '#fef2f2' },
-};
-
-const statusConfig: Record<string, { label: string; color: string; bg: string }> = {
-  TODO:        { label: '待处理',  color: '#6b7280', bg: '#f9fafb' },
-  IN_PROGRESS: { label: '进行中',  color: '#7c3aed', bg: '#f5f3ff' },
-  REVIEW:      { label: '审核中',  color: '#d97706', bg: '#fffbeb' },
-  DONE:        { label: '已完成',  color: '#059669', bg: '#ecfdf5' },
-  CANCELLED:   { label: '已取消',  color: '#9ca3af', bg: '#f9fafb' },
-};
+const { Text } = Typography;
 
 const projectStatusConfig: Record<string, { label: string; color: string; bg: string }> = {
   ACTIVE:    { label: '进行中', color: '#7c3aed', bg: '#f5f3ff' },
@@ -43,6 +30,47 @@ const projectColors = [
   '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#84cc16',
 ];
 
+function ProjectTaskKanban({ tasks, projectId }: { tasks: any[]; projectId: string }) {
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const { message } = App.useApp();
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, status }: { id: string; status: string }) =>
+      taskApi.update(id, { status }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tasks', 'project', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['projects'] });
+      message.success('已更新');
+    },
+  });
+
+  const { draggedTaskId, setDraggedTaskId, dragOverCol, setDragOverCol, getTasksByStatus, handleDrop } =
+    useKanbanBoard({ tasks, onUpdateStatus: (id, st) => updateMutation.mutate({ id, status: st }) });
+
+  if (tasks.length === 0) {
+    return <Empty description="暂无任务" image={Empty.PRESENTED_IMAGE_SIMPLE} style={{ padding: 24 }} />;
+  }
+
+  return (
+    <KanbanBoardView
+      getTasksByStatus={getTasksByStatus}
+      draggedTaskId={draggedTaskId}
+      dragOverCol={dragOverCol}
+      onDragStart={setDraggedTaskId}
+      onDragOver={setDragOverCol}
+      onDragLeave={(e) => {
+        if ((e.currentTarget as HTMLElement).contains(e.relatedTarget as Node)) return;
+        setDragOverCol(null);
+      }}
+      onDrop={handleDrop}
+      onCardClick={(taskId) => navigate(`/tasks/${taskId}`)}
+      compact
+      emptyText="暂无任务"
+    />
+  );
+}
+
 export default function ProjectBoardPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -51,6 +79,9 @@ export default function ProjectBoardPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingProject, setEditingProject] = useState<any>(null);
   const [form] = Form.useForm();
+  const [taskModalOpen, setTaskModalOpen] = useState(false);
+  const [creatingForProject, setCreatingForProject] = useState<string | null>(null);
+  const [taskForm] = Form.useForm();
 
   const { data: projects, isLoading } = useQuery({
     queryKey: ['projects'],
@@ -95,6 +126,22 @@ export default function ProjectBoardPage() {
       queryClient.invalidateQueries({ queryKey: ['projects'] });
       message.success('项目已删除');
       if (expandedId) setExpandedId(null);
+    },
+  });
+
+  const taskCreateMutation = useMutation({
+    mutationFn: (values: any) =>
+      taskApi.create({
+        ...values,
+        projectId: creatingForProject,
+        dueDate: values.dueDate?.toISOString?.() ?? null,
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tasks', 'project', expandedId] });
+      queryClient.invalidateQueries({ queryKey: ['projects'] });
+      message.success('任务已创建');
+      setTaskModalOpen(false);
+      taskForm.resetFields();
     },
   });
 
@@ -302,83 +349,24 @@ export default function ProjectBoardPage() {
                     </div>
                   )}
 
-                  {/* Expanded tasks */}
+                  {/* Expanded tasks — Kanban Board */}
                   {isExpanded && (
-                    <div style={{ borderTop: '1px solid #f3f4f6', padding: '0 16px 16px' }}>
-                      {tasks.length === 0 ? (
-                        <div style={{ padding: 32, textAlign: 'center' }}>
-                          <Empty description="暂无任务" image={Empty.PRESENTED_IMAGE_SIMPLE} />
-                        </div>
-                      ) : (
-                        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                          <thead>
-                            <tr style={{ borderBottom: '2px solid #f3f4f6' }}>
-                              <th style={{ padding: '10px 12px', fontSize: 11, fontWeight: 600, color: '#9ca3af', textAlign: 'left' }}>标题</th>
-                              <th style={{ padding: '10px 12px', fontSize: 11, fontWeight: 600, color: '#9ca3af', textAlign: 'left', width: 90 }}>状态</th>
-                              <th style={{ padding: '10px 12px', fontSize: 11, fontWeight: 600, color: '#9ca3af', textAlign: 'left', width: 70 }}>优先级</th>
-                              <th style={{ padding: '10px 12px', fontSize: 11, fontWeight: 600, color: '#9ca3af', textAlign: 'left', width: 100 }}>负责人</th>
-                              <th style={{ padding: '10px 12px', fontSize: 11, fontWeight: 600, color: '#9ca3af', textAlign: 'left', width: 120 }}>截止日期</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {tasks.map((task: any) => {
-                              const pCfg = priorityConfig[task.priority] || priorityConfig.MEDIUM;
-                              const sCfg = statusConfig[task.status] || statusConfig.TODO;
-                              const diffDays = task.dueDate
-                                ? dayjs(task.dueDate).startOf('day').diff(dayjs().startOf('day'), 'day')
-                                : null;
-                              const dlColor = diffDays === null ? undefined
-                                : diffDays < 0 ? '#ef4444' : diffDays <= 1 ? '#f59e0b' : '#10b981';
-                              const dlText = diffDays === null ? null
-                                : diffDays < 0 ? `已逾期${Math.abs(diffDays)}天`
-                                : diffDays === 0 ? '今天截止'
-                                : diffDays === 1 ? '明天截止'
-                                : `还有${diffDays}天`;
-
-                              return (
-                                <tr key={task.id} className="task-row"
-                                  onClick={() => navigate(`/tasks/${task.id}`)}
-                                  style={{ borderBottom: '1px solid #f9fafb' }}>
-                                  <td style={{ padding: '10px 12px' }}>
-                                    <span style={{ fontWeight: 500, color: '#1e1b4b', fontSize: 13 }}>{task.title}</span>
-                                  </td>
-                                  <td style={{ padding: '10px 12px' }}>
-                                    <Tag style={{ borderRadius: 6, fontWeight: 500, fontSize: 11, color: sCfg.color, background: sCfg.bg, border: 'none', margin: 0 }}>
-                                      {sCfg.label}
-                                    </Tag>
-                                  </td>
-                                  <td style={{ padding: '10px 12px' }}>
-                                    <span style={{ fontSize: 11, fontWeight: 600, color: pCfg.color, background: pCfg.bg, padding: '2px 8px', borderRadius: 4 }}>
-                                      {pCfg.label}
-                                    </span>
-                                  </td>
-                                  <td style={{ padding: '10px 12px' }}>
-                                    {task.assignees?.length > 0 ? (
-                                      <Avatar.Group maxCount={2} size={22}>
-                                        {task.assignees.map((a: any) => (
-                                          <Tooltip key={a.id} title={a.user.name}>
-                                            <Avatar src={a.user.avatar} style={{ backgroundColor: '#7c3aed', fontSize: 10 }}>
-                                              {a.user.name?.charAt(0)}
-                                            </Avatar>
-                                          </Tooltip>
-                                        ))}
-                                      </Avatar.Group>
-                                    ) : <span style={{ fontSize: 12, color: '#d1d5db' }}>-</span>}
-                                  </td>
-                                  <td style={{ padding: '10px 12px' }}>
-                                    {task.dueDate ? (
-                                      <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-                                        <span style={{ fontSize: 11, color: '#6b7280' }}>{dayjs(task.dueDate).format('MM/DD HH:mm')}</span>
-                                        {dlText && <span style={{ fontSize: 10, fontWeight: 500, color: dlColor }}><ClockCircleOutlined style={{ fontSize: 9 }} /> {dlText}</span>}
-                                      </div>
-                                    ) : <span style={{ fontSize: 12, color: '#d1d5db' }}>-</span>}
-                                  </td>
-                                </tr>
-                              );
-                            })}
-                          </tbody>
-                        </table>
-                      )}
+                    <div style={{ borderTop: '1px solid #f3f4f6', padding: '12px 16px 16px' }}>
+                      <div style={{ marginBottom: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontSize: 12, color: '#9ca3af' }}>共 {tasks.length} 个任务</span>
+                        <Button size="small" type="dashed" icon={<PlusOutlined />}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            taskForm.resetFields();
+                            taskForm.setFieldsValue({ status: 'TODO', priority: 'MEDIUM' });
+                            setCreatingForProject(project.id);
+                            setTaskModalOpen(true);
+                          }}
+                          style={{ borderRadius: 8 }}>
+                          新建任务
+                        </Button>
+                      </div>
+                      <ProjectTaskKanban tasks={tasks} projectId={project.id} />
                     </div>
                   )}
                 </Card>
@@ -467,6 +455,64 @@ export default function ProjectBoardPage() {
               </Form.Item>
             </Col>
           </Row>
+        </Form>
+      </Modal>
+
+      {/* Create task modal */}
+      <Modal
+        title="新建任务"
+        open={taskModalOpen}
+        onCancel={() => { setTaskModalOpen(false); taskForm.resetFields(); }}
+        onOk={() => taskForm.submit()}
+        confirmLoading={taskCreateMutation.isPending}
+        destroyOnClose
+      >
+        <Form form={taskForm} layout="vertical" onFinish={(v) => taskCreateMutation.mutate(v)}>
+          <Form.Item name="title" label="标题" rules={[{ required: true, message: '请输入标题' }]}>
+            <Input placeholder="任务标题" style={{ borderRadius: 8 }} />
+          </Form.Item>
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item name="status" label="状态">
+                <Select
+                  options={[
+                    { value: 'TODO', label: '待处理' },
+                    { value: 'IN_PROGRESS', label: '进行中' },
+                    { value: 'REVIEW', label: '审核中' },
+                    { value: 'DONE', label: '已完成' },
+                  ]}
+                  style={{ borderRadius: 8 }}
+                />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item name="priority" label="优先级">
+                <Select
+                  options={[
+                    { value: 'LOW', label: '低优先级' },
+                    { value: 'MEDIUM', label: '中优先级' },
+                    { value: 'HIGH', label: '高优先级' },
+                    { value: 'URGENT', label: '紧急' },
+                  ]}
+                  style={{ borderRadius: 8 }}
+                />
+              </Form.Item>
+            </Col>
+          </Row>
+          <Form.Item name="dueDate" label="截止日期">
+            <DatePicker showTime style={{ borderRadius: 8, width: '100%' }} />
+          </Form.Item>
+          <Form.Item name="assigneeIds" label="负责人">
+            <Select
+              mode="multiple"
+              placeholder="选择负责人"
+              options={(usersResp?.data || usersResp || []).map((u: any) => ({
+                value: u.id,
+                label: u.name,
+              }))}
+              style={{ borderRadius: 8 }}
+            />
+          </Form.Item>
         </Form>
       </Modal>
     </div>
