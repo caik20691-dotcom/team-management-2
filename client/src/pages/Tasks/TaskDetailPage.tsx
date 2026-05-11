@@ -11,6 +11,7 @@ import {
   FilePptOutlined, VideoCameraOutlined, AudioOutlined, PaperClipOutlined,
 } from '@ant-design/icons';
 import { taskApi, fileApi } from '../../api';
+import SubtaskBoard from '../../components/Tasks/SubtaskBoard';
 import { useAuthStore } from '../../stores/auth';
 import dayjs from 'dayjs';
 
@@ -259,6 +260,14 @@ export default function TaskDetailPage() {
                 </Form.Item>
               </Form>
             </Card>
+          </Card>
+
+          <Card
+            title={<span style={{ fontWeight: 600 }}>子任务看板</span>}
+            style={{ borderRadius: 12, marginTop: 16 }}
+            size="small"
+          >
+            <SubtaskBoard parentId={task.id} projectId={task.projectId} />
           </Card>
         </Col>
 

@@ -26,6 +26,7 @@ export class ProjectService {
           include: {
             creator: { select: { id: true, name: true, avatar: true } },
             assignees: { include: { user: { select: { id: true, name: true, avatar: true } } } },
+            _count: { select: { children: true } },
           },
           orderBy: { createdAt: 'desc' },
         },

@@ -6,7 +6,7 @@ export class TaskService {
   constructor(private prisma: PrismaService) {}
 
   async findAll(query: any) {
-    const { page = '1', pageSize = '20', status, priority, projectId, taskType } = query;
+    const { page = '1', pageSize = '20', status, priority, projectId, taskType, parentId } = query;
     const skip = (Number(page) - 1) * Number(pageSize);
     const take = Number(pageSize);
 
@@ -16,6 +16,7 @@ export class TaskService {
     if (projectId) where.projectId = projectId;
     if (taskType === 'regular') where.projectId = null;
     if (taskType === 'project') where.projectId = { not: null };
+    if (parentId) where.parentId = parentId;
 
     const [data, total] = await Promise.all([
       this.prisma.task.findMany({
@@ -26,7 +27,7 @@ export class TaskService {
           creator: { select: { id: true, name: true, avatar: true } },
           assignees: { include: { user: { select: { id: true, name: true, avatar: true } } } },
           project: { select: { id: true, name: true, color: true } },
-          _count: { select: { comments: true, attachments: true } },
+          _count: { select: { comments: true, attachments: true, children: true } },
         },
         orderBy: { createdAt: 'desc' },
       }),

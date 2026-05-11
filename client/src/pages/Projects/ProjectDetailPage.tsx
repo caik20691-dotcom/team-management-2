@@ -10,9 +10,10 @@ import {
   ArrowLeftOutlined, EditOutlined, DeleteOutlined,
   UserOutlined, CalendarOutlined, TeamOutlined,
   ClockCircleOutlined, PlusOutlined, ApartmentOutlined,
-  SettingOutlined, RightOutlined,
+  SettingOutlined, RightOutlined, DownOutlined,
 } from '@ant-design/icons';
 import { projectApi, taskApi, userApi } from '../../api';
+import SubtaskBoard from '../../components/Tasks/SubtaskBoard';
 import dayjs from 'dayjs';
 
 const { Title, Text, Paragraph } = Typography;
@@ -369,9 +370,32 @@ export default function ProjectDetailPage() {
               size="small"
               pagination={false}
               locale={{ emptyText: <Empty description="暂无任务" image={Empty.PRESENTED_IMAGE_SIMPLE} /> }}
+              expandable={{
+                rowExpandable: (record: any) => (record._count?.children ?? 0) > 0,
+                expandedRowRender: (record: any) => (
+                  <div style={{ padding: '8px 0', background: '#fafafa', borderRadius: 8 }}>
+                    <SubtaskBoard parentId={record.id} compact />
+                  </div>
+                ),
+                expandIcon: ({ expanded, onExpand, record }: any) =>
+                  (record._count?.children ?? 0) > 0 ? (
+                    <Button
+                      type="text"
+                      size="small"
+                      icon={expanded ? <DownOutlined /> : <RightOutlined />}
+                      onClick={(e) => onExpand(record, e)}
+                      style={{ color: '#7c3aed' }}
+                    />
+                  ) : (
+                    <span style={{ width: 22, display: 'inline-block' }} />
+                  ),
+              }}
               onRow={(record: any) => ({
                 style: { cursor: 'pointer' },
-                onClick: () => navigate(`/tasks/${record.id}`),
+                onClick: (e: any) => {
+                  if ((e.target as HTMLElement).closest('.ant-table-row-expand-icon, .ant-btn')) return;
+                  navigate(`/tasks/${record.id}`);
+                },
               })}
             />
           </Card>
